@@ -1,0 +1,19 @@
+Texture2D shaderTexture;
+SamplerState SamplerType;
+
+//Переменная в буфере сразу может использоваться (т.к. объект всего один).
+cbuffer PixelBuffer
+{
+	float4 pixelColor;
+};
+
+struct PixelInputType
+{
+	float4 pos : SV_POSITION;
+	float2 tex : TEXCOORD;
+};
+
+float4 PS(PixelInputType input) : SV_TARGET
+{
+	return shaderTexture.Sample(SamplerType, input.tex) * pixelColor;
+}
