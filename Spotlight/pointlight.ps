@@ -1,0 +1,69 @@
+struct Light
+{
+	float3 pos; 
+	float range;
+	float3 dir; 
+	float exponent;
+	float3 att; 
+	float4 ambient;
+	float4 diffuse;
+	float lightCos;
+};
+
+cbuffer cbPerFrame
+{
+	Light light;
+};
+
+Texture2D ObjTexture;
+SamplerState ObjSamplerState;
+
+struct PixelInputType
+{
+	float4 pos : SV_POSITION;
+	float4 worldPos : POSITION;
+	float2 tex : TEXCOORD;
+	float3 normal : NORMAL;
+};
+
+float4 PS(PixelInputType input) : SV_TARGET
+{
+	float3 finalColor = float3(0.0f, 0.0f, 0.0f);
+	input.normal = normalize(input.normal);
+	float4 diffuse = ObjTexture.Sample(ObjSamplerState, input.tex);
+
+	//Создаём вектор от позиции пикселя к позиции света.
+	float3 pixelToLightVec = light.pos - input.worldPos;
+
+	//Находим расстояние между светом и пикселем (длина вектора)
+	float d = length(pixelToLightVec);
+
+	//Создаём фоновый (Ambient) свет
+	float3 finalAmbient = diffuse * light.ambient;
+
+	//Если пиксель слишком далеко, возвращаем фоновый цвет.
+	if(d > light.range) return float4(finalAmbient, diffuse.a);
+
+	//Делаем pixelToLightVec единичным вектором. скал. пр-е от -1.0 до 1.0.
+	pixelToLightVec = normalize(pixelToLightVec);
+
+	//Узнаём интенсивность света в зависимости от угла к поверхности
+	float howMuchLight = dot(pixelToLightVec, input.normal);
+
+	//Если свет на передней поверхности
+	if(howMuchLight > 0.0f){
+		//Добавляем освещение к finalColor
+		finalColor += howMuchLight * diffuse * light.diffuse;
+
+		float spotEffect = dot(normalize(light.dir), -pixelToLightVec);
+		float spot = float(spotEffect > light.lightCos);
+		spotEffect = max(pow( spotEffect, light.exponent), 0.0f);
+		float attenuation = spot*spotEffect / (light.att[0] + (light.att[1] * d) + (light.att[2] * (d*d)));
+		finalColor *= attenuation;
+	}
+
+	//Делаем результат в пределах от 0 до 1; добавляем фоновое освещение
+	finalColor = saturate(finalColor + finalAmbient);
+
+	return float4(finalColor, diffuse.a);
+}
