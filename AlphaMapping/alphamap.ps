@@ -1,0 +1,19 @@
+Texture2D shaderTextures[3]; //3 our textures.
+SamplerState SampleType;
+
+struct PixelInputType
+{
+	float4 pos : SV_POSITION;
+	float2 tex : TEXCOORD0;
+};
+
+float4 PS(PixelInputType input) : SV_TARGET
+{
+	float4 color1 = shaderTextures[0].Sample(SampleType, input.tex);
+	float4 color2 = shaderTextures[1].Sample(SampleType, input.tex);
+
+	float4 alphaValue = shaderTextures[2].Sample(SampleType, input.tex);
+	
+	//lerp(a, b, s)	возвращает a + s*(b Ч a), т.е. s задаЄт % наложени€ b.
+	return lerp(color1, color2, 1.0 - alphaValue);
+}
