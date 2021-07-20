@@ -1,0 +1,67 @@
+struct Light
+{
+	float3 pos;
+	float range;
+	float3 att;
+	float4 ambient;
+	float4 diffuse;
+};
+
+cbuffer cbPerFrame
+{
+	Light light;
+};
+
+Texture2D ObjTexture;
+SamplerState ObjSamplerState;
+
+struct PixelInputType
+{
+	float4 pos : SV_POSITION;
+	float4 worldPos : POSITION;
+	float2 tex : TEXCOORD;
+	float3 normal : NORMAL;
+};
+
+float4 PS(PixelInputType input) : SV_TARGET
+{
+	input.normal = normalize(input.normal);
+	
+	//Цвет текстуры.
+	float4 diffuse = ObjTexture.Sample(ObjSamplerState, input.tex);
+
+	float3 finalColor = float3(0.0f, 0.0f, 0.0f);
+
+	//Создаём вектор от позиции пикселя к позиции света.
+	float3 lightToPixelVec = light.pos - input.worldPos;
+
+	//Находим расстояние между светом и пикселем (длина вектора)
+	float d = length(lightToPixelVec);
+
+	//Создаём фоновый (Ambient) свет
+	float3 finalAmbient = diffuse * light.ambient;
+
+	//Если пиксель слишком далеко, возвращаем фоновый цвет.
+	if(d > light.range) return float4(finalAmbient, diffuse.a);
+
+	//Делаем lightToPixelVec единичным вектором, описывая направление
+	//пикселей по отношению позиции света. Поэтому скал. пр-е от -1.0 до 1.0.
+	lightToPixelVec /= d;
+
+	//Узнаём интенсивность света в зависимости от угла к поверхности
+	float howMuchLight = dot(lightToPixelVec, input.normal); //скалярное произв.
+
+	//Если свет на передней поверхности
+	if(howMuchLight > 0.0f){
+		//Добавляем освещение к finalColor
+		finalColor += howMuchLight * diffuse * light.diffuse;
+
+		//Вычисляем фактор затухания
+		finalColor /= light.att[0] + (light.att[1] * d) + (light.att[2] * (d*d));
+	}
+
+	//Делаем результат в пределах от 0 до 1; добавляем фоновое освещение
+	finalColor = saturate(finalColor + finalAmbient);
+
+	return float4(finalColor, diffuse.a);
+}
