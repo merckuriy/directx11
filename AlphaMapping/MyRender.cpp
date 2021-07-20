@@ -22,7 +22,7 @@ MyRender::MyRender()
 
 bool MyRender::Init()
 {
-	// геометрия (квадрат)
+	// РіРµРѕРјРµС‚СЂРёСЏ (РєРІР°РґСЂР°С‚)
 	Vertex vert[] =
 	{
 		{ XMFLOAT3(-1.0f, 1.0f, 0.0f), XMFLOAT2(0.0f, 0.0f) },
