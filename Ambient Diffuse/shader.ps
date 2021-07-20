@@ -1,0 +1,28 @@
+cbuffer LightBuffer
+{
+	float4 ambientColor;
+	float4 diffuseColor;
+	float3 lightDirection;
+};
+
+Texture2D ObjTexture;
+SamplerState ObjSamplerState;
+
+struct PixelInputType
+{
+	float4 pos : SV_POSITION;
+	float2 tex : TEXCOORD;
+	float3 normal : NORMAL;
+};
+
+float4 PS(PixelInputType input) : SV_TARGET
+{	
+	float4 textureColor = ObjTexture.Sample(ObjSamplerState, input.tex);
+	float lightIntensity = saturate(dot(input.normal, -lightDirection));
+	float4 finalColor = ambientColor;
+
+	finalColor += (diffuseColor * max(0, lightIntensity));
+	finalColor = saturate(finalColor);
+
+	return float4(finalColor * textureColor);
+}
